@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTML to PDF Converter - Studio</title>
+  <link rel="stylesheet" href="styles.css">
+  <!-- High-fidelity rendering libraries: html2canvas & jsPDF -->
+  <script src="libs/html2canvas.min.js"></script>
+  <script src="libs/jspdf.umd.min.js"></script>
+  <script src="libs/html2pdf.bundle.min.js"></script>
+  <script>
+    if (typeof html2canvas === 'undefined') {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+      document.head.appendChild(s);
+    }
+    if (typeof jspdf === 'undefined') {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+      document.head.appendChild(s);
+    }
+  </script>
+</head>
+<body>
+  <!-- Top Navigation Bar -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-icon">📄</div>
+      <div class="brand-title">HTML to PDF Converter</div>
+      <span class="brand-tag">Client-Side & Private</span>
+    </div>
+    <div class="header-actions">
+      <button id="themeToggleBtn" class="btn btn-secondary btn-icon" title="Toggle Dark/Light Mode">
+        🌓
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Application Layout -->
+  <div class="app-layout">
+    <!-- Left Configuration & Input Sidebar -->
+    <aside class="sidebar">
+      <div class="tabs-nav">
+        <button class="tab-btn active" data-tab="uploadTab">📁 Upload & Files</button>
+        <button class="tab-btn" data-tab="editorTab">💻 HTML Editor</button>
+      </div>
+
+      <div class="sidebar-content">
+        <!-- Tab 1: Upload & Batch Files -->
+        <div id="uploadTab" class="tab-pane active">
+          <div class="dropzone" id="dropzone">
+            <div class="dropzone-icon">📥</div>
+            <div class="dropzone-title">Click or Drag & Drop HTML files</div>
+            <div class="dropzone-subtitle">Supports .html and .htm documents</div>
+            <input type="file" id="fileInput" class="file-input" accept=".html,.htm,text/html" multiple>
+          </div>
+
+          <div class="files-container" id="filesContainer" style="display: none;">
+            <div class="section-label">
+              <span>Uploaded Documents (<span id="fileCount">0</span>)</span>
+              <button id="clearFilesBtn" class="btn btn-outline btn-sm">Clear All</button>
+            </div>
+            <div class="file-list" id="fileList"></div>
+          </div>
+        </div>
+
+        <!-- Tab 2: Live HTML Code Editor -->
+        <div id="editorTab" class="tab-pane">
+          <div class="editor-container">
+            <div class="editor-toolbar">
+              <span class="section-label">Source Code</span>
+              <button id="applyCodeBtn" class="btn btn-primary btn-sm">Apply Changes</button>
+            </div>
+            <textarea id="codeEditor" class="code-textarea" placeholder="Paste or write raw HTML code here..."></textarea>
+          </div>
+        </div>
+
+        <!-- PDF Configuration Settings Card -->
+        <div class="settings-card">
+          <div class="section-label">PDF Print Options</div>
+
+          <div class="settings-row">
+            <div class="setting-group">
+              <label for="paperSize">Page Format</label>
+              <select id="paperSize" class="select-input">
+                <option value="a4" selected>A4 (210 × 297 mm)</option>
+                <option value="letter">US Letter (8.5 × 11 in)</option>
+                <option value="legal">US Legal (8.5 × 14 in)</option>
+                <option value="a3">A3 (297 × 420 mm)</option>
+                <option value="a5">A5 (148 × 210 mm)</option>
+              </select>
+            </div>
+
+            <div class="setting-group">
+              <label for="orientation">Orientation</label>
+              <select id="orientation" class="select-input">
+                <option value="portrait" selected>Portrait</option>
+                <option value="landscape">Landscape</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="settings-row">
+            <div class="setting-group">
+              <label for="marginPreset">Margins</label>
+              <select id="marginPreset" class="select-input">
+                <option value="6" selected>Compact (6 mm) - Recommended for e-Fatura</option>
+                <option value="12">Default (12 mm)</option>
+                <option value="5">Narrow (5 mm)</option>
+                <option value="0">None (0 mm)</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+
+            <div class="setting-group" id="customMarginGroup" style="display: none;">
+              <label for="customMarginVal">Custom Margin (mm)</label>
+              <input type="number" id="customMarginVal" class="text-input" min="0" max="100" value="6">
+            </div>
+
+            <div class="setting-group">
+              <label for="scaleSlider">Content Scale: <span id="scaleVal">100%</span></label>
+              <input type="range" id="scaleSlider" min="30" max="150" value="100" step="1" style="accent-color: var(--primary); margin-top: 8px;">
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <label class="checkbox-label" title="Automatically scale document to fit 100% on a single A4 page without cutting off content">
+              <input type="checkbox" id="autoFitWidth" checked>
+              <span>⚡ Auto-Fit to 1 Page (A4 Single-Page Guarantee)</span>
+            </label>
+          </div>
+
+          <div class="setting-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="backgroundGraphics" checked>
+              <span>Include Background Graphics & Colors</span>
+            </label>
+          </div>
+
+          <div class="setting-group">
+            <label class="checkbox-label" title="Hide empty placeholder rows in invoice tables">
+              <input type="checkbox" id="hideEmptyRows">
+              <span>Hide Blank / Empty Table Rows</span>
+            </label>
+          </div>
+
+          <div class="setting-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="addPageNumbers">
+              <span>Add Header & Page Numbering</span>
+            </label>
+          </div>
+
+          <!-- Custom CSS Injection -->
+          <div class="collapsible-header" id="toggleCssAccordion">
+            <span>+ Custom CSS Styling (Optional)</span>
+            <span id="cssAccordionArrow">▼</span>
+          </div>
+          <div class="collapsible-body" id="cssAccordionBody">
+            <textarea id="customCssInput" class="code-textarea" style="height: 90px;" placeholder="/* Add custom print styles e.g. body { font-family: sans-serif; } */"></textarea>
+          </div>
+        </div>
+
+        <!-- Progress Indicator -->
+        <div class="progress-container" id="progressContainer">
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" id="progressBarFill"></div>
+          </div>
+          <div class="progress-text">
+            <span id="progressStatusText">Converting...</span>
+            <span id="progressPercent">0%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons in Sidebar Footer -->
+      <div class="sidebar-footer">
+        <button id="directDownloadBtn" class="btn btn-primary" title="Download PDF directly to your device">
+          ⚡ Download PDF (Instant)
+        </button>
+        <button id="vectorPrintBtn" class="btn btn-secondary" title="High-fidelity vector print with selectable text and crisp fonts">
+          🖨️ Vector Print / Save as PDF
+        </button>
+        <button id="batchExportBtn" class="btn btn-outline" style="display: none;" title="Convert all uploaded files">
+          📦 Batch Convert All (<span id="batchCountBadge">0</span>)
+        </button>
+      </div>
+    </aside>
+
+    <!-- Right Live Preview Workspace -->
+    <main class="preview-area">
+      <div class="preview-toolbar">
+        <div class="preview-meta">
+          <span class="preview-badge" id="activeDocName">sample.html</span>
+          <span class="preview-badge" id="paperDimensionsBadge">A4 Portrait</span>
+        </div>
+        <div class="preview-controls">
+          <button id="zoomOutBtn" class="btn btn-secondary btn-sm" title="Zoom Out">−</button>
+          <span id="previewZoomLevel" style="font-size: 12px; font-weight: 600; min-width: 44px; text-align: center;">85%</span>
+          <button id="zoomInBtn" class="btn btn-secondary btn-sm" title="Zoom In">+</button>
+          <button id="fitScreenBtn" class="btn btn-secondary btn-sm" title="Fit to Screen">Fit</button>
+        </div>
+      </div>
+
+      <div class="preview-viewport" id="previewViewport">
+        <div class="paper-sheet-wrapper" id="paperWrapper">
+          <div class="paper-sheet a4-portrait" id="paperSheet">
+            <iframe id="previewIframe" class="preview-iframe" sandbox="allow-same-origin allow-scripts"></iframe>
+          </div>
+        </div>
+
+        <div class="empty-preview-state" id="emptyState" style="display: none;">
+          <div class="empty-preview-icon">📑</div>
+          <h3>No Document Loaded</h3>
+          <p>Drag and drop an HTML file or click "Load Sample Document" to start.</p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
